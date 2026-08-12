@@ -1,0 +1,20 @@
+# Variables de entorno y credenciales (NUNCA subir a GitHub)
+.env
+.env.*
+*.key
+*.pem
+
+# Dependencias
+node_modules/
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
