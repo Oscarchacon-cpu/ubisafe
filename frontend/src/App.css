@@ -1,0 +1,15 @@
+.pantalla-centrada {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.marca {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #0b2e59;
+  margin: 0;
+}

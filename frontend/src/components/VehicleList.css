@@ -1,0 +1,27 @@
+.tabla-vehiculos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.tabla-vehiculos th,
+.tabla-vehiculos td {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.tabla-vehiculos th {
+  color: #666;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.estado-on {
+  color: #1a7d3c;
+  font-weight: 600;
+}
+
+.estado-off {
+  color: #999;
+}
