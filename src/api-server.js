@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 const { requireAuth, login, logout, quienSoy } = require('./api-auth');
 const { router: rutasVehiculos } = require('./api-rutas-vehiculos');
 
-const PUERTO = process.env.API_PORT || 6029;
+const PUERTO = process.env.PORT || process.env.API_PORT || 6029;
 const ORIGEN_PERMITIDO = process.env.API_CORS_ORIGIN || 'http://localhost:5173';
 
 const app = express();
@@ -24,8 +24,8 @@ app.get('/api/auth/me', requireAuth, quienSoy);
 
 app.use('/api/vehiculos', requireAuth, rutasVehiculos);
 
-// Solo local (127.0.0.1): en produccion nginx es el unico camino de entrada,
-// igual que el canal de comandos del puerto 6028.
-app.listen(PUERTO, '127.0.0.1', () => {
-  console.log(`API escuchando en http://localhost:${PUERTO}`);
+// Escucha en 0.0.0.0 para que sea accesible desde afuera (Render, Docker, etc)
+// En produccion con nginx, solo nginx accede al puerto interno
+app.listen(PUERTO, '0.0.0.0', () => {
+  console.log(`API escuchando en http://0.0.0.0:${PUERTO}`);
 });
