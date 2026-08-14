@@ -6,8 +6,7 @@ const { requireAuth, login, logout, quienSoy } = require('./api-auth');
 const { router: rutasVehiculos } = require('./api-rutas-vehiculos');
 
 const PUERTO = process.env.PORT || process.env.API_PORT || 6029;
-const ORIGEN_PERMITIDO = process.env.API_CORS_ORIGIN || 'https://ubisafe-1.onrender.com';
-
+const ORIGEN_PERMITIDO = process.env.API_CORS_ORIGIN || 'https://ubisafe.vercel.app';
 const app = express();
 app.set('trust proxy', 1); // detras de nginx en produccion, para que "secure" en cookies funcione bien
 app.use(cors({ origin: ORIGEN_PERMITIDO, credentials: true }));
