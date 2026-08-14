@@ -1,5 +1,5 @@
 async function llamarApi(ruta, opciones = {}) {
-  const respuesta = await fetch(`https://ubisafe-p5ka.onrender.com/api${ruta}`, {
+  const respuesta = await fetch(`https://ubisafe-production.up.railway.app/api${ruta}`, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     ...opciones,
