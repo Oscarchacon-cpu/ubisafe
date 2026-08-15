@@ -17,6 +17,8 @@ const rutasGeovallas = require('./routes/geovallas');
 const rutasGPS = require('./routes/gps');
 const rutasAdmin = require('./routes/admin');
 const rutasDashboard = require('./routes/dashboard');
+const rutasTeltonika = require('./routes/teltonika');
+const TeltonikaTCPServer = require('./teltonika-tcp-server');
 
 const app = express();
 const server = http.createServer(app);
@@ -170,6 +172,7 @@ app.use('/api/geovallas', rutasGeovallas);
 app.use('/api/gps', rutasGPS);  // GPS devices - Critical
 app.use('/api/admin', rutasAdmin);  // Admin - Onboarding + config
 app.use('/api/dashboard', rutasDashboard);  // Dashboard - KPIs + mapa
+app.use('/api/teltonika', rutasTeltonika);  // Teltonika FMB130 - GPS + RFID
 
 // ===========================
 // WEBSOCKET (Real-time tracking)
@@ -213,10 +216,15 @@ app.use((req, res) => {
 // INICIAR SERVIDOR
 // ===========================
 
+// Iniciar servidor HTTP principal
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Ubisafe Backend ejecutándose en http://localhost:${PORT}`);
   console.log(`📊 WebSocket disponible en ws://localhost:${PORT}`);
   console.log(`🔗 CORS habilitado para: ${CORS_ORIGIN}\n`);
 });
 
-module.exports = { app, io };
+// Iniciar servidor TCP para Teltonika
+const teltonikaTCP = new TeltonikaTCPServer(6029);
+teltonikaTCP.start();
+
+module.exports = { app, io, teltonikaTCP };

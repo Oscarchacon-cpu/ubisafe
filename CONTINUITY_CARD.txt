@@ -1,0 +1,109 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                  UBISAFE - TARJETA DE CONTINUIDAD PROFESIONAL                  ║
+║                    En caso de desconexión en la sesión                          ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+📍 SITUACIÓN ACTUAL (15-Ago-2026, MAÑANA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Backend COMPLETADO: 35+ endpoints, PostgreSQL + PostGIS, WebSocket, JWT Auth
+⏳ Hoy estamos EN: FASE 1 - TESTING DEL BACKEND
+🎯 Siguiente: Verificar que POST /api/gps/ubicacion funciona correctamente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 SI PIERDES LA CONEXIÓN - CARGA ESTO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Lee estos archivos (EN ESTE ORDEN):
+   📄 PROJECT_CONTEXT.md    ← CONTEXTO COMPLETO (leer primero)
+   📄 CONTINUITY_CARD.txt   ← Este archivo (para recordar rápido)
+   📄 TODO.md               ← Plan del día
+
+2. Dile a Claude:
+   "Carga PROJECT_CONTEXT.md y continuamos con Testing del Backend.
+    Estábamos a punto de probar POST /api/gps/ubicacion"
+
+3. Claude RECORDARÁ TODO porque:
+   ✅ Guardó contexto en su memoria
+   ✅ PROJECT_CONTEXT.md documenta el estado exacto
+   ✅ Tiene mis instrucciones de enseñanza
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ COMANDOS PARA EMPEZAR HOY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TERMINAL 1 - Iniciar Backend:
+$ cd C:\Users\Oscar Chacon\Desktop\Ubisafe\backend
+$ npm start
+→ Debe escuchar en http://localhost:6029
+
+TERMINAL 2 - Hacer test (una vez backend esté corriendo):
+$ curl -X POST http://localhost:6029/api/admin/onboarding/registrar \
+  -H "Content-Type: application/json" \
+  -d '{"nombre_empresa":"Test Inc","email_admin":"admin@test.com","nombre_admin":"Admin","password":"Password123","pais_id":1}'
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 PLAN DE HOY (Orden profesional):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FASE 1: TESTING DEL BACKEND (30-45 min) ← EMPEZAMOS AQUÍ
+  □ POST /api/admin/onboarding/registrar
+  □ POST /api/auth/login
+  □ POST /api/vehiculos
+  □ POST /api/gps/ubicacion ← CRITICAL TEST
+  □ GET /api/dashboard/mapa
+  □ WebSocket verificación
+  □ Alertas verificación
+
+FASE 2: TELTONIKA INTEGRATION (1-2 horas)
+  □ Configurar dispositivo GPS real
+  □ Enviar ubicación real
+  □ Verificar en mapa
+
+FASE 3: FRONTEND REACT (4-6 horas)
+  □ Setup React + Vite
+  □ Login page
+  □ Dashboard + Mapa
+  □ Real-time updates
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎓 LO QUE OSCAR ESTÁ APRENDIENDO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Terminado:
+   - Arquitectura multi-tenant
+   - PostgreSQL + PostGIS (queries geoespaciales)
+   - Backend 35+ endpoints
+
+🔄 HOY Aprenderá:
+   - Testing profesional de APIs
+   - Debugging paso a paso
+   - Backend-first mindset
+   - Real-time WebSocket
+   - Por qué el orden importa
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔐 PUNTOS CRÍTICOS PARA RECORDAR:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Backend-First: Frontend depende 100% del backend funcionando
+- Testing antes de UI: Encontramos bugs en backend, no en UI
+- Seguridad en cada paso: No saltamos fases
+- Enseñanza incluida: Cada comando explica el "por qué"
+- Documentación viva: Actualizamos PROJECT_CONTEXT.md cada sesión
+- Continuidad garantizada: Este archivo + PROJECT_CONTEXT.md = recuperación total
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 PRÓXIMO PASO INMEDIATO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Ejecuta: cd C:\Users\Oscar Chacon\Desktop\Ubisafe\backend && npm start
+2. Verifica que backend está en http://localhost:6029
+3. Dile a Claude que estamos listos para TESTING DEL BACKEND
+4. Claude guiará cada comando con explicaciones claras
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║               ¡Continuidad 100% garantizada! Vamos a lograrlo. 💪             ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+Creado: 2026-08-15 09:00 AM
+Versión: 1.0 - Initial Safety Card

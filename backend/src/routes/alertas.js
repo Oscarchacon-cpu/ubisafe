@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 
     let query = `
       SELECT a.id, a.vehiculo_id, v.placa, a.tipo_alerta_id, ta.nombre as tipo_nombre,
-             ta.severidad, a.descripcion, a.timestamp, a.resuelto,
+             ta.codigo as tipo_alerta_codigo, ta.severidad, a.descripcion, a.timestamp, a.resuelto,
              a.ubicacion, a.velocidad, a.temperatura_motor
       FROM ubisafe.alertas a
       LEFT JOIN ubisafe.vehiculos v ON a.vehiculo_id = v.id
@@ -181,7 +181,8 @@ router.get('/sin-resolver/todas', async (req, res) => {
     const empresa_id = req.user.empresa_id;
 
     const alertas = await pool.query(
-      `SELECT a.id, a.vehiculo_id, v.placa, ta.nombre, ta.severidad, a.timestamp
+      `SELECT a.id, a.vehiculo_id, v.placa, ta.nombre, ta.codigo as tipo_alerta_codigo,
+              ta.severidad, a.descripcion, a.timestamp
        FROM ubisafe.alertas a
        LEFT JOIN ubisafe.vehiculos v ON a.vehiculo_id = v.id
        LEFT JOIN ubisafe.tipos_alerta ta ON a.tipo_alerta_id = ta.id
