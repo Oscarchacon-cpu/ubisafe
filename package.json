@@ -1,0 +1,8 @@
+﻿{
+  "name": "ubisafe",
+  "private": true,
+  "scripts": {
+    "start": "cd backend && npm start",
+    "build": "cd backend && npm install"
+  }
+}
