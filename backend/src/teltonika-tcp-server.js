@@ -27,6 +27,10 @@ class TeltonikaTCPServer {
     this.connections.set(clientId, socket);
     console.log(`[Teltonika] Cliente conectado: ${clientId}`);
 
+    // Enviar handshake IMEI al dispositivo (protocolo Teltonika)
+    socket.write(Buffer.from([0x00, 0x0F]));
+    socket.imei_waiting = true;
+
     socket.on('data', (data) => this.handleData(socket, data, clientId));
     socket.on('end', () => this.handleDisconnect(clientId));
     socket.on('error', (err) => {
@@ -36,19 +40,10 @@ class TeltonikaTCPServer {
 
   async handleData(socket, data, clientId) {
     try {
-      // Teltonika avisa que está listo: envía 0x00 0x0F
-      if (data.length === 2 && data[0] === 0x00 && data[1] === 0x0F) {
-        console.log(`[Teltonika] IMEI request de ${clientId}`);
-        // Responder con ACK
-        socket.write(Buffer.from([0x00, 0x0F]));
-        socket.imei_waiting = true;
-        return;
-      }
-
-      // Si espera IMEI, leer los primeros 15 bytes (IMEI)
+      // Si espera IMEI (primeros 15 bytes después del handshake)
       if (socket.imei_waiting) {
-        const imei = data.toString('utf8', 0, 15);
-        console.log(`[Teltonika] IMEI recibido: ${imei}`);
+        const imei = data.toString('utf8', 0, 15).trim();
+        console.log(`[Teltonika] IMEI recibido: ${imei} de ${clientId}`);
         socket.imei = imei;
         socket.imei_waiting = false;
 
