@@ -66,6 +66,12 @@ class TeltonikaTCPServer {
         // Responder con ACK (0x00 0x00 0x00 0x01 = 4 bytes big-endian)
         socket.write(Buffer.from([0x00, 0x00, 0x00, 0x01]));
         console.log(`[Teltonika] ACK (4 bytes) enviado a ${clientId}`);
+
+        // Enviar PING (NULL command) para indicar que estamos listos para datos
+        setTimeout(() => {
+          socket.write(Buffer.from([0x00, 0x00, 0x00, 0x00]));
+          console.log(`[Teltonika] PING enviado a ${clientId}`);
+        }, 100);
         return;
       }
 
