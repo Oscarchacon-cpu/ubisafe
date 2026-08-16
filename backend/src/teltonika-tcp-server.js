@@ -1,6 +1,4 @@
 const net = require('net');
-const teltonikaModule = require('teltonika-codec-parser');
-const { Parser, Codec, Protocol } = teltonikaModule;
 const crc = require('crc');
 const pool = require('./db');
 
@@ -89,6 +87,8 @@ class TeltonikaTCPServer {
   }
 
   async handleGPSData(socket, clientId) {
+    const { Parser, Codec, Protocol } = require('teltonika-codec-parser');
+
     while (socket.buffer.length >= 12) {
       const preamble = socket.buffer.readUInt32BE(0);
       if (preamble !== 0x00000000) {
