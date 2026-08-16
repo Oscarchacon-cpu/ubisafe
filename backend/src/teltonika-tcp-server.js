@@ -1,5 +1,6 @@
 const net = require('net');
-const { parseData } = require('teltonika-codec-parser');
+const { Parser, Codec, Protocol } = require('teltonika-codec-parser');
+const crc = require('crc');
 const pool = require('./db');
 
 class TeltonikaTCPServer {
@@ -100,11 +101,11 @@ class TeltonikaTCPServer {
       if (socket.buffer.length < frameSize) break;
 
       try {
-        const frameData = socket.buffer.slice(8, 8 + dataLength);
-        const parsedData = parseData(frameData);
+        const frame = socket.buffer.slice(0, frameSize);
+        const result = new Parser(Codec.C8, Protocol.TCP, frame);
 
-        if (parsedData && parsedData.records) {
-          for (const record of parsedData.records) {
+        if (result.avl && Array.isArray(result.avl)) {
+          for (const record of result.avl) {
             await this.updateVehicleLocation(
               socket.imei,
               record.latitude,
@@ -118,7 +119,7 @@ class TeltonikaTCPServer {
         }
 
         const ackBuffer = Buffer.alloc(4);
-        ackBuffer.writeUInt32BE(parsedData?.records?.length || 1, 0);
+        ackBuffer.writeUInt32BE(result.avl?.length || 1, 0);
         socket.write(ackBuffer);
       } catch (err) {
         console.error(`[Teltonika] Error decodificando frame:`, err.message);
