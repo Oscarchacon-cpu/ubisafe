@@ -55,9 +55,7 @@ class TeltonikaTCPServer {
         await this.handleGPSData(socket, clientId);
       }
     } catch (err) {
-      console.error(`[Teltonika] Error procesando datos:`, err.message);
-      socket.destroy();
-      this.connections.delete(clientId);
+      console.error(`[Teltonika] Error procesando datos (${clientId}):`, err.message);
     }
   }
 
@@ -169,7 +167,7 @@ class TeltonikaTCPServer {
 
       await pool.query(
         `UPDATE ubisafe.vehiculos
-         SET ubicacion_actual = ST_Point($1, $2),
+         SET ubicacion_actual = ST_SetSRID(ST_Point($1::numeric, $2::numeric), 4326),
              velocidad_actual = $3,
              fecha_ultimo_reporte = NOW()
          WHERE id = $4`,
