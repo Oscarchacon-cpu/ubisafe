@@ -89,7 +89,7 @@ class MQTTClient {
       // Actualizar ubicación en vehículos
       await pool.query(
         `UPDATE ubisafe.vehiculos
-         SET ubicacion_actual = ST_SetSRID(ST_Point($2::numeric, $1::numeric), 4326),
+         SET ubicacion_actual = ST_SetSRID(ST_MakePoint($2::numeric, $1::numeric), 4326),
              velocidad_actual = $3,
              fecha_ultimo_reporte = NOW()
          WHERE id = $4`,
