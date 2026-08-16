@@ -49,6 +49,7 @@ class TeltonikaTCPServer {
 
         // Responder con ACK (0x01)
         socket.write(Buffer.from([0x01]));
+        console.log(`[Teltonika] ACK enviado a ${clientId}`);
         return;
       }
 
