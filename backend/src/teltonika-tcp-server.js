@@ -32,7 +32,13 @@ class TeltonikaTCPServer {
     socket.imei_waiting = true;
 
     socket.on('data', (data) => this.handleData(socket, data, clientId));
-    socket.on('end', () => this.handleDisconnect(clientId));
+    socket.on('end', () => {
+      console.log(`[Teltonika] FIN de conexión (end event): ${clientId}`);
+      this.handleDisconnect(clientId);
+    });
+    socket.on('close', () => {
+      console.log(`[Teltonika] Conexión cerrada: ${clientId}`);
+    });
     socket.on('error', (err) => {
       console.error(`[Teltonika] Error en cliente ${clientId}:`, err.message);
     });
