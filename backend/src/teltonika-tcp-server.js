@@ -103,7 +103,7 @@ class TeltonikaTCPServer {
 
       try {
         const frame = socket.buffer.slice(0, frameSize);
-        const result = new Parser(Codec.C8, Protocol.TCP, frame);
+        const result = new Parser(Codec.C8E, Protocol.TCP, frame);
 
         if (result.avl && Array.isArray(result.avl)) {
           for (const record of result.avl) {
