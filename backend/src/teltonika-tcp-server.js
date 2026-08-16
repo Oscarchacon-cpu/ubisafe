@@ -58,27 +58,132 @@ class TeltonikaTCPServer {
     try {
       // Si espera IMEI (primeros 15 bytes después del handshake)
       if (socket.imei_waiting) {
-        const imei = data.toString('utf8', 0, 15).trim();
-        console.log(`[Teltonika] IMEI recibido: ${imei} de ${clientId}`);
+        // Parse IMEI: 2-byte length + IMEI as ASCII
+        const imeiLength = data.readUInt16BE(0);
+        const imei = data.slice(2, 2 + imeiLength).toString('utf8').trim();
+        console.log(`[Teltonika] IMEI recibido: ${imei} (${imeiLength} bytes) de ${clientId}`);
         socket.imei = imei;
         socket.imei_waiting = false;
 
-        // Responder con ACK (0x00 0x00 0x00 0x01 = 4 bytes big-endian)
-        socket.write(Buffer.from([0x00, 0x00, 0x00, 0x01]));
-        console.log(`[Teltonika] ACK (4 bytes) enviado a ${clientId}. Esperando datos GPS...`);
+        // Responder con SINGLE BYTE 0x01 (accept)
+        socket.write(Buffer.from([0x01]));
+        console.log(`[Teltonika] IMEI ACK (1 byte) enviado. Esperando Codec 8 data...`);
         return;
       }
 
-      // Parsear datos GPS/GPRS
+      // Parsear datos Codec 8
       if (socket.imei) {
-        console.log(`[Teltonika] Datos recibidos de ${socket.imei}: ${data.toString('hex').substring(0, 100)} (${data.length} bytes)`);
-        await this.parseGpsData(socket, data);
+        if (data.length >= 6) {
+          const frameLength = data.readUInt32BE(0);
+          const codecId = data[4];
+          const numRecords = data[5];
+
+          console.log(`[Teltonika] Codec ${codecId} frame recibido: ${numRecords} registros (${frameLength} bytes)`);
+
+          // Parsear datos GPS
+          await this.parseCodec8Data(socket, data, numRecords);
+
+          // Responder con 4-byte record count (CRITICAL!)
+          const response = Buffer.alloc(4);
+          response.writeUInt32BE(numRecords, 0);
+          socket.write(response);
+          console.log(`[Teltonika] Enviado ACK de ${numRecords} registros`);
+        }
       }
 
     } catch (err) {
       console.error(`[Teltonika] Error procesando datos:`, err.message);
       socket.destroy();
       this.connections.delete(clientId);
+    }
+  }
+
+  async parseCodec8Data(socket, data, numRecords) {
+    try {
+      // Codec 8 frame: [4-byte length][1-byte codec][1-byte num_records][data...][1-byte num_records_duplicate]
+      if (data.length < 6) return;
+
+      const frameLength = data.readUInt32BE(0);
+      const codecId = data[4];
+
+      if (codecId !== 0x08) {
+        console.warn(`[Teltonika] Codec ${codecId} no soportado (esperado 0x08)`);
+        return;
+      }
+
+      // Parse AVL records
+      let offset = 6; // Después de header
+      for (let i = 0; i < numRecords; i++) {
+        if (offset + 34 > data.length) break; // Mínimo 34 bytes por record
+
+        try {
+          const timestamp = data.readBigUInt64BE(offset);
+          offset += 8;
+
+          const latitude = data.readInt32BE(offset) / 10000000;
+          offset += 4;
+
+          const longitude = data.readInt32BE(offset) / 10000000;
+          offset += 4;
+
+          const altitude = data.readInt16BE(offset);
+          offset += 2;
+
+          const angle = data.readInt16BE(offset);
+          offset += 2;
+
+          const speed = data.readUInt16BE(offset);
+          offset += 2;
+
+          // Skip IO data
+          const ioDataLength = data.readUInt16BE(offset);
+          offset += 2 + ioDataLength;
+
+          console.log(`[Teltonika] ✓ GPS Record ${i+1}: Lat=${latitude.toFixed(6)}, Lon=${longitude.toFixed(6)}, Speed=${speed} km/h`);
+
+          // Update database
+          await this.updateVehicleLocation(socket.imei, latitude, longitude, speed, altitude);
+        } catch (e) {
+          console.error(`[Teltonika] Error parsing record ${i}:`, e.message);
+        }
+      }
+    } catch (err) {
+      console.error(`[Teltonika] Error en parseCodec8Data:`, err.message);
+    }
+  }
+
+  async updateVehicleLocation(imei, latitude, longitude, speed, altitude) {
+    try {
+      const vehicle = await pool.query(
+        'SELECT id, empresa_id FROM ubisafe.vehiculos WHERE imei = $1',
+        [imei]
+      );
+
+      if (vehicle.rows.length === 0) {
+        console.warn(`[Teltonika] Vehículo no encontrado: ${imei}`);
+        return;
+      }
+
+      const { id: vehicleId, empresa_id: empresaId } = vehicle.rows[0];
+
+      await pool.query(
+        `UPDATE ubisafe.vehiculos
+         SET ubicacion_actual = ST_Point($1, $2),
+             velocidad_actual = $3,
+             fecha_ultimo_reporte = NOW()
+         WHERE id = $4`,
+        [longitude, latitude, speed, vehicleId]
+      );
+
+      await pool.query(
+        `INSERT INTO ubisafe.puntos_gps (vehiculo_id, empresa_id, latitud, longitud, velocidad, timestamp)
+         VALUES ($1, $2, $3, $4, $5, NOW())`,
+        [vehicleId, empresaId, latitude, longitude, speed]
+      );
+
+      console.log(`[Teltonika] ✓ Vehículo ${imei} actualizado: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+    } catch (err) {
+      console.error(`[Teltonika] Error actualizando BD:`, err.message);
     }
   }
 
