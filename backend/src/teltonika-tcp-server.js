@@ -1,5 +1,6 @@
 const net = require('net');
-const { Parser, Codec, Protocol } = require('teltonika-codec-parser');
+const teltonikaModule = require('teltonika-codec-parser');
+const { Parser, Codec, Protocol } = teltonikaModule;
 const crc = require('crc');
 const pool = require('./db');
 
