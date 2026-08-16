@@ -132,13 +132,20 @@ class TeltonikaTCPServer {
 
   async validateIMEI(imei) {
     try {
+      console.log(`[Teltonika] DEBUG: Validando IMEI "${imei}" (type: ${typeof imei}, length: ${imei.length})`);
       const result = await pool.query(
         'SELECT id FROM ubisafe.vehiculos WHERE imei = $1 LIMIT 1',
         [imei]
       );
-      return result.rows.length > 0;
+      console.log(`[Teltonika] DEBUG: Query result rows: ${result.rows.length}`);
+      if (result.rows.length > 0) {
+        console.log(`[Teltonika] DEBUG: IMEI encontrado en BD`);
+        return true;
+      }
+      console.log(`[Teltonika] DEBUG: IMEI NO encontrado en BD`);
+      return false;
     } catch (err) {
-      console.error(`[Teltonika] Error validando IMEI:`, err.message);
+      console.error(`[Teltonika] Error validando IMEI:`, err.message, err.code, err.toString());
       return false;
     }
   }
