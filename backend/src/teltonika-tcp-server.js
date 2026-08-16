@@ -55,6 +55,7 @@ class TeltonikaTCPServer {
 
       // Parsear datos GPS/GPRS
       if (socket.imei) {
+        console.log(`[Teltonika] Datos recibidos de ${socket.imei}: ${data.toString('hex').substring(0, 100)} (${data.length} bytes)`);
         await this.parseGpsData(socket, data);
       }
 
