@@ -1,5 +1,5 @@
 const net = require('net');
-const Parser = require('teltonika-codec-parser');
+const { parseData } = require('teltonika-codec-parser');
 const pool = require('./db');
 
 class TeltonikaTCPServer {
@@ -7,7 +7,6 @@ class TeltonikaTCPServer {
     this.port = port;
     this.server = null;
     this.connections = new Map();
-    this.parser = new Parser();
   }
 
   start() {
@@ -102,7 +101,7 @@ class TeltonikaTCPServer {
 
       try {
         const frameData = socket.buffer.slice(8, 8 + dataLength);
-        const parsedData = this.parser.parseData(frameData);
+        const parsedData = parseData(frameData);
 
         if (parsedData && parsedData.records) {
           for (const record of parsedData.records) {
@@ -114,7 +113,7 @@ class TeltonikaTCPServer {
               record.altitude || 0,
               record.timestamp
             );
-            console.log(`[Teltonika] ✓ Registrado GPS: Lat=${record.latitude.toFixed(6)}, Lon=${record.longitude.toFixed(6)}, Speed=${record.speed}km/h`);
+            console.log(`[Teltonika] ✓ GPS: Lat=${record.latitude.toFixed(6)}, Lon=${record.longitude.toFixed(6)}, Speed=${record.speed}km/h`);
           }
         }
 
