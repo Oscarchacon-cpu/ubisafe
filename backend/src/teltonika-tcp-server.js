@@ -27,6 +27,13 @@ class TeltonikaTCPServer {
     this.connections.set(clientId, socket);
     console.log(`[Teltonika] Cliente conectado: ${clientId}`);
 
+    // Keep-alive: enviar ping periódicamente para mantener conexión abierta
+    const keepAliveInterval = setInterval(() => {
+      if (socket.destroyed) {
+        clearInterval(keepAliveInterval);
+      }
+    }, 30000);
+
     // Enviar handshake IMEI al dispositivo (protocolo Teltonika)
     socket.write(Buffer.from([0x00, 0x0F]));
     socket.imei_waiting = true;
@@ -34,13 +41,16 @@ class TeltonikaTCPServer {
     socket.on('data', (data) => this.handleData(socket, data, clientId));
     socket.on('end', () => {
       console.log(`[Teltonika] FIN de conexión (end event): ${clientId}`);
+      clearInterval(keepAliveInterval);
       this.handleDisconnect(clientId);
     });
     socket.on('close', () => {
       console.log(`[Teltonika] Conexión cerrada: ${clientId}`);
+      clearInterval(keepAliveInterval);
     });
     socket.on('error', (err) => {
       console.error(`[Teltonika] Error en cliente ${clientId}:`, err.message);
+      clearInterval(keepAliveInterval);
     });
   }
 
