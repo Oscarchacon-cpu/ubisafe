@@ -79,6 +79,7 @@ class TeltonikaTCPServer {
       socket.buffer = socket.buffer.slice(17);
       socket.write(Buffer.from([0x01]));
       console.log(`[Teltonika] ✓ IMEI aceptado: ${imei}`);
+      console.log(`[Teltonika] DEBUG: Buffer después de IMEI: ${socket.buffer.length} bytes`);
     } else {
       socket.write(Buffer.from([0x00]));
       socket.end();
