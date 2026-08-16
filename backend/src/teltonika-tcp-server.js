@@ -49,7 +49,9 @@ class TeltonikaTCPServer {
         if (socket.buffer.length >= 17) {
           await this.handleIMEI(socket, clientId);
         }
-      } else {
+      }
+
+      if (socket.imeiConfirmed && socket.buffer.length > 0) {
         await this.handleGPSData(socket, clientId);
       }
     } catch (err) {
@@ -60,7 +62,7 @@ class TeltonikaTCPServer {
   }
 
   async handleIMEI(socket, clientId) {
-    const data = socket.buffer.slice(0, 17);
+    const data = socket.buffer.subarray(0, 17);
 
     if (data[0] !== 0x00 || data[1] !== 0x0F) {
       console.error('[Teltonika] Encabezado IMEI inválido');
@@ -68,22 +70,22 @@ class TeltonikaTCPServer {
       return;
     }
 
-    const imei = data.slice(2, 17).toString('utf8').trim();
+    const imei = data.subarray(2, 17).toString('utf8').trim();
     console.log(`[Teltonika] IMEI recibido: ${imei}`);
 
     const isValid = await this.validateIMEI(imei);
 
     if (isValid) {
+      console.log(`[Teltonika] ✓ IMEI aceptado: ${imei}`);
+      socket.write(Buffer.from([0x01]));
       socket.imei = imei;
       socket.imeiConfirmed = true;
-      socket.buffer = socket.buffer.slice(17);
-      socket.write(Buffer.from([0x01]));
-      console.log(`[Teltonika] ✓ IMEI aceptado: ${imei}`);
+      socket.buffer = socket.buffer.subarray(17);
       console.log(`[Teltonika] DEBUG: Buffer después de IMEI: ${socket.buffer.length} bytes`);
     } else {
-      socket.write(Buffer.from([0x00]));
-      socket.end();
       console.log(`[Teltonika] ✗ IMEI rechazado: ${imei}`);
+      socket.write(Buffer.from([0x00]));
+      socket.destroy();
     }
   }
 
