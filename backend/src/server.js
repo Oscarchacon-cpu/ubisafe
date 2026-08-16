@@ -19,6 +19,7 @@ const rutasAdmin = require('./routes/admin');
 const rutasDashboard = require('./routes/dashboard');
 const rutasTeltonika = require('./routes/teltonika');
 const TeltonikaTCPServer = require('./teltonika-tcp-server');
+const MQTTClient = require('./mqtt-client');
 
 const app = express();
 const server = http.createServer(app);
@@ -227,4 +228,8 @@ server.listen(PORT, '0.0.0.0', () => {
 const teltonikaTCP = new TeltonikaTCPServer(6029);
 teltonikaTCP.start();
 
-module.exports = { app, io, teltonikaTCP };
+// Iniciar cliente MQTT para Teltonika
+const mqttClient = new MQTTClient();
+mqttClient.connect();
+
+module.exports = { app, io, teltonikaTCP, mqttClient };

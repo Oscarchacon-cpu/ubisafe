@@ -19,7 +19,8 @@
     "cors": "^2.8.5",
     "cookie-parser": "^1.4.6",
     "socket.io": "^4.5.4",
-    "axios": "^1.4.0"
+    "axios": "^1.4.0",
+    "mqtt": "^5.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
