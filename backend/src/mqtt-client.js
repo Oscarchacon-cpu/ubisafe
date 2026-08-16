@@ -39,11 +39,17 @@ class MQTTClient {
     });
 
     this.client.on('error', (err) => {
-      console.error('[MQTT] Error:', err.message);
+      console.error('[MQTT] Error:', err);
+      if (err.message) console.error('[MQTT] Message:', err.message);
+      if (err.code) console.error('[MQTT] Code:', err.code);
     });
 
     this.client.on('disconnect', () => {
       console.log('[MQTT] Desconectado del broker');
+    });
+
+    this.client.on('offline', () => {
+      console.log('[MQTT] Broker offline');
     });
   }
 
