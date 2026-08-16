@@ -52,9 +52,12 @@ class TeltonikaTCPServer {
 
   async handleData(socket, data, clientId) {
     try {
-      if (!socket.imeiConfirmed) {
+      // Detectar automáticamente si es IMEI o datos GPS
+      if (data.length >= 2 && data[0] === 0x00 && data[1] === 0x0F) {
+        // Es IMEI handshake
         await this.handleIMEI(socket, data, clientId);
       } else {
+        // Es datos GPS (Codec 8)
         await this.handleGPSData(socket, data, clientId);
       }
     } catch (err) {
