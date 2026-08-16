@@ -17,16 +17,10 @@ class MQTTClient {
 
     this.client.on('connect', () => {
       console.log('[MQTT] Conectado a broker:', this.brokerUrl);
-      // Suscribirse a topics de Teltonika
-      // Formato: v1/{imei}/gps o similar
-      this.client.subscribe('v1/+/gps', (err) => {
-        if (err) console.error('[MQTT] Error suscribiendo a v1/+/gps:', err);
-        else console.log('[MQTT] Suscrito a v1/+/gps');
-      });
-      // Alternativa para topic con IMEI al final
-      this.client.subscribe('ubisafe/gps/+', (err) => {
-        if (err) console.error('[MQTT] Error suscribiendo a ubisafe/gps/+:', err);
-        else console.log('[MQTT] Suscrito a ubisafe/gps/+');
+      // Suscribirse a TODOS los topics para debug
+      this.client.subscribe('#', (err) => {
+        if (err) console.error('[MQTT] Error suscribiendo a #:', err);
+        else console.log('[MQTT] Suscrito a todos los topics (#)');
       });
     });
 

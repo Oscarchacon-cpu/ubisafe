@@ -1,4 +1,5 @@
 const net = require('net');
+const crc = require('crc');
 const pool = require('./db');
 
 class TeltonikaTCPServer {
@@ -34,19 +35,14 @@ class TeltonikaTCPServer {
       }
     }, 30000);
 
-    // Enviar handshake IMEI al dispositivo (protocolo Teltonika)
-    socket.write(Buffer.from([0x00, 0x0F]));
-    socket.imei_waiting = true;
+    // DO NOT send handshake - just wait for device to send IMEI
+    socket.imeiConfirmed = false;
 
     socket.on('data', (data) => this.handleData(socket, data, clientId));
     socket.on('end', () => {
-      console.log(`[Teltonika] FIN de conexión (end event): ${clientId}`);
-      clearInterval(keepAliveInterval);
-      this.handleDisconnect(clientId);
-    });
-    socket.on('close', () => {
       console.log(`[Teltonika] Conexión cerrada: ${clientId}`);
       clearInterval(keepAliveInterval);
+      this.handleDisconnect(clientId);
     });
     socket.on('error', (err) => {
       console.error(`[Teltonika] Error en cliente ${clientId}:`, err.message);
@@ -56,45 +52,149 @@ class TeltonikaTCPServer {
 
   async handleData(socket, data, clientId) {
     try {
-      // Si espera IMEI (primeros 15 bytes después del handshake)
-      if (socket.imei_waiting) {
-        // Parse IMEI: 2-byte length + IMEI as ASCII
-        const imeiLength = data.readUInt16BE(0);
-        const imei = data.slice(2, 2 + imeiLength).toString('utf8').trim();
-        console.log(`[Teltonika] IMEI recibido: ${imei} (${imeiLength} bytes) de ${clientId}`);
-        socket.imei = imei;
-        socket.imei_waiting = false;
-
-        // Responder con SINGLE BYTE 0x01 (accept)
-        socket.write(Buffer.from([0x01]));
-        console.log(`[Teltonika] IMEI ACK (1 byte) enviado. Esperando Codec 8 data...`);
-        return;
+      if (!socket.imeiConfirmed) {
+        await this.handleIMEI(socket, data, clientId);
+      } else {
+        await this.handleGPSData(socket, data, clientId);
       }
-
-      // Parsear datos Codec 8
-      if (socket.imei) {
-        if (data.length >= 6) {
-          const frameLength = data.readUInt32BE(0);
-          const codecId = data[4];
-          const numRecords = data[5];
-
-          console.log(`[Teltonika] Codec ${codecId} frame recibido: ${numRecords} registros (${frameLength} bytes)`);
-
-          // Parsear datos GPS
-          await this.parseCodec8Data(socket, data, numRecords);
-
-          // Responder con 4-byte record count (CRITICAL!)
-          const response = Buffer.alloc(4);
-          response.writeUInt32BE(numRecords, 0);
-          socket.write(response);
-          console.log(`[Teltonika] Enviado ACK de ${numRecords} registros`);
-        }
-      }
-
     } catch (err) {
       console.error(`[Teltonika] Error procesando datos:`, err.message);
       socket.destroy();
       this.connections.delete(clientId);
+    }
+  }
+
+  async handleIMEI(socket, data, clientId) {
+    // Device sends: [0x00][0x0F] + [15-byte IMEI]
+    if (data.length < 17) {
+      console.log('[Teltonika] Paquete IMEI incompleto');
+      return;
+    }
+
+    if (data[0] !== 0x00 || data[1] !== 0x0F) {
+      console.error('[Teltonika] Encabezado IMEI inválido');
+      socket.destroy();
+      return;
+    }
+
+    const imei = data.slice(2, 17).toString('utf8').trim();
+    console.log(`[Teltonika] IMEI recibido: ${imei} de ${clientId}`);
+
+    // Validar IMEI en BD
+    const isValid = await this.validateIMEI(imei);
+
+    if (isValid) {
+      socket.imei = imei;
+      socket.imeiConfirmed = true;
+      socket.write(Buffer.from([0x01])); // Accept
+      console.log(`[Teltonika] ✓ IMEI aceptado: ${imei}`);
+    } else {
+      socket.write(Buffer.from([0x00])); // Reject
+      socket.end();
+      console.log(`[Teltonika] ✗ IMEI rechazado: ${imei}`);
+    }
+  }
+
+  async handleGPSData(socket, data, clientId) {
+    if (data.length < 12) {
+      console.log('[Teltonika] Frame GPS incompleto');
+      return;
+    }
+
+    // Check preamble
+    const preamble = data.readUInt32BE(0);
+    if (preamble !== 0x00000000) {
+      console.error('[Teltonika] Preamble inválido');
+      socket.write(Buffer.from([0, 0, 0, 0]));
+      return;
+    }
+
+    // Read data length
+    const dataLength = data.readUInt32BE(4);
+    const totalExpectedLength = dataLength + 12;
+
+    if (data.length < totalExpectedLength) {
+      console.log(`[Teltonika] Frame incompleto: ${data.length}/${totalExpectedLength} bytes`);
+      return;
+    }
+
+    // CRITICAL: Validate CRC16/IBM
+    const crcBytes = data.slice(-4);
+    const expectedCrc = crcBytes.readUInt32BE(0);
+    const payload = data.slice(4, data.length - 4);
+    const calculatedCrc = crc.crc16(payload);
+
+    if (expectedCrc !== calculatedCrc) {
+      console.error(`[Teltonika] CRC mismatch! ${expectedCrc} vs ${calculatedCrc}`);
+      socket.write(Buffer.from([0, 0, 0, 0]));
+      return;
+    }
+
+    // Parse Codec 8
+    const codecId = data[8];
+    const numRecords = data[9];
+
+    if (codecId !== 0x08) {
+      console.error(`[Teltonika] Codec no soportado: 0x${codecId.toString(16)}`);
+      return;
+    }
+
+    console.log(`[Teltonika] ✓ Frame Codec 8: ${numRecords} registros`);
+
+    let offset = 10;
+    for (let i = 0; i < numRecords; i++) {
+      if (offset + 34 > data.length) break;
+
+      try {
+        const timestamp = Number(data.readBigUInt64BE(offset)) / 1000;
+        offset += 8;
+
+        offset += 1; // Skip priority
+
+        const longitude = data.readInt32BE(offset) / 10000000;
+        offset += 4;
+
+        const latitude = data.readInt32BE(offset) / 10000000;
+        offset += 4;
+
+        const altitude = data.readInt16BE(offset);
+        offset += 2;
+
+        offset += 2; // Skip angle
+
+        offset += 1; // Skip satellites
+
+        const speed = data.readUInt16BE(offset);
+        offset += 2;
+
+        console.log(`[Teltonika] ✓ Record ${i+1}: Lat=${latitude.toFixed(6)}, Lon=${longitude.toFixed(6)}, Speed=${speed}km/h`);
+
+        await this.updateVehicleLocation(socket.imei, latitude, longitude, speed, altitude, timestamp);
+
+        const ioSize = data.readUInt16BE(offset);
+        offset += 2 + ioSize;
+      } catch (e) {
+        console.error(`[Teltonika] Error record ${i}:`, e.message);
+      }
+    }
+
+    // Send ACK: record count
+    const ackBuffer = Buffer.alloc(4);
+    ackBuffer.writeUInt32BE(numRecords, 0);
+    socket.write(ackBuffer);
+    console.log(`[Teltonika] ACK: ${numRecords} registros`);
+  }
+
+  async validateIMEI(imei) {
+    try {
+      const result = await pool.query(
+        'SELECT id FROM ubisafe.vehiculos WHERE imei = $1 LIMIT 1',
+        [imei]
+      );
+      return result.rows.length > 0;
+    } catch (err) {
+      console.error(`[Teltonika] Error validando IMEI:`, err.message);
+      return false;
     }
   }
 
@@ -152,7 +252,7 @@ class TeltonikaTCPServer {
     }
   }
 
-  async updateVehicleLocation(imei, latitude, longitude, speed, altitude) {
+  async updateVehicleLocation(imei, latitude, longitude, speed, altitude, timestamp) {
     try {
       const vehicle = await pool.query(
         'SELECT id, empresa_id FROM ubisafe.vehiculos WHERE imei = $1',
@@ -175,10 +275,11 @@ class TeltonikaTCPServer {
         [longitude, latitude, speed, vehicleId]
       );
 
+      const ts = timestamp ? new Date(timestamp) : new Date();
       await pool.query(
         `INSERT INTO ubisafe.puntos_gps (vehiculo_id, empresa_id, latitud, longitud, velocidad, timestamp)
-         VALUES ($1, $2, $3, $4, $5, NOW())`,
-        [vehicleId, empresaId, latitude, longitude, speed]
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [vehicleId, empresaId, latitude, longitude, speed, ts]
       );
 
       console.log(`[Teltonika] ✓ Vehículo ${imei} actualizado: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
