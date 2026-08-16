@@ -47,9 +47,9 @@ class TeltonikaTCPServer {
         socket.imei = imei;
         socket.imei_waiting = false;
 
-        // Responder con ACK (0x01)
-        socket.write(Buffer.from([0x01]));
-        console.log(`[Teltonika] ACK enviado a ${clientId}`);
+        // Responder con ACK (0x00 0x00 0x00 0x01 = 4 bytes big-endian)
+        socket.write(Buffer.from([0x00, 0x00, 0x00, 0x01]));
+        console.log(`[Teltonika] ACK (4 bytes) enviado a ${clientId}`);
         return;
       }
 
